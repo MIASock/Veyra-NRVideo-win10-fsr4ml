@@ -33,6 +33,13 @@ jobs:
           arch: 'win64_msvc2022_64'
           cache: true
 
+      - name: Restore vcpkg installed tree (FFmpeg and OpenSSL take ~30 min to build)
+        id: vcpkgcache
+        uses: actions/cache/restore@v4
+        with:
+          path: C:\vcpkg\installed
+          key: vcpkg-installed-ffmpeg-opus-datachannel-v1
+
       - name: vcpkg dependencies (FFmpeg, Opus, Xbox streaming stack)
         shell: pwsh
         run: |
@@ -43,6 +50,13 @@ jobs:
           if ($LASTEXITCODE) { exit 1 }
           & $vcpkg install "libdatachannel:x64-windows-static" "nlohmann-json:x64-windows-static" --recurse
           if ($LASTEXITCODE) { exit 1 }
+
+      - name: Save vcpkg installed tree right away (so later failures do not lose it)
+        if: steps.vcpkgcache.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v4
+        with:
+          path: C:\vcpkg\installed
+          key: vcpkg-installed-ffmpeg-opus-datachannel-v1
 
       - name: Public AMD SDK headers (FidelityFX SDK 2.3.0, AMF 1.5.3)
         shell: pwsh
@@ -55,12 +69,19 @@ jobs:
             New-Item -ItemType Junction -Path third_party_local/amd/AMF-SDK-1.5.3/include -Target (Resolve-Path third_party_local/amd/AMF-SDK-1.5.3/amf/public/include) | Out-Null
           }
 
+      - name: NVENC headers (public MIT headers from FFmpeg, n13.0.19.0)
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force third_party_local/nvidia | Out-Null
+          git clone --depth 1 --branch n13.0.19.0 https://github.com/FFmpeg/nv-codec-headers.git third_party_local/nvidia/nv-codec-headers-13.0
+          Test-Path third_party_local/nvidia/nv-codec-headers-13.0/include/ffnvcodec/nvEncodeAPI.h
+
       - name: Configure
         shell: pwsh
         run: |
           $vc = ($env:VCPKG_INSTALLATION_ROOT -replace '\\','/') + '/installed'
           cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release `
-            -DVEYRA_BUILD_QML_UI=ON -DVEYRA_ENABLE_XBOX=ON -DVEYRA_ENABLE_D3D12_DEBUG=OFF `
+            -DVEYRA_BUILD_QML_UI=ON -DVEYRA_ENABLE_XBOX=ON -DVEYRA_ENABLE_D3D12_DEBUG=OFF -DVEYRA_ENABLE_DEINTERLACE=OFF `
             "-DVEYRA_FFMPEG_ROOT=$vc/x64-windows" `
             "-DCMAKE_PREFIX_PATH=$vc/x64-windows-static;$vc/x64-windows;$env:QT_ROOT_DIR"
 
