@@ -38,7 +38,8 @@ jobs:
         uses: actions/cache/restore@v4
         with:
           path: C:\vcpkg\installed
-          key: vcpkg-installed-ffmpeg-opus-datachannel-v1
+          key: vcpkg-installed-ffmpeg-opus-datachannel-v2
+          restore-keys: vcpkg-installed-ffmpeg-opus-datachannel-v1
 
       - name: vcpkg dependencies (FFmpeg, Opus, Xbox streaming stack)
         shell: pwsh
@@ -48,7 +49,7 @@ jobs:
           Set-Location $env:RUNNER_TEMP
           & $vcpkg install "ffmpeg[avcodec,avformat,swresample,swscale]:x64-windows" "opus:x64-windows" --recurse
           if ($LASTEXITCODE) { exit 1 }
-          & $vcpkg install "libdatachannel:x64-windows-static" "nlohmann-json:x64-windows-static" --recurse
+          & $vcpkg install "libdatachannel[srtp,ws]:x64-windows-static" "nlohmann-json:x64-windows-static" --recurse
           if ($LASTEXITCODE) { exit 1 }
 
       - name: Save vcpkg installed tree right away (so later failures do not lose it)
@@ -56,7 +57,7 @@ jobs:
         uses: actions/cache/save@v4
         with:
           path: C:\vcpkg\installed
-          key: vcpkg-installed-ffmpeg-opus-datachannel-v1
+          key: vcpkg-installed-ffmpeg-opus-datachannel-v2
 
       - name: Public AMD SDK headers (FidelityFX SDK 2.3.0, AMF 1.5.3)
         shell: pwsh
