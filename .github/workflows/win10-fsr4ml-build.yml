@@ -70,6 +70,37 @@ jobs:
             New-Item -ItemType Junction -Path third_party_local/amd/AMF-SDK-1.5.3/include -Target (Resolve-Path third_party_local/amd/AMF-SDK-1.5.3/amf/public/include) | Out-Null
           }
 
+      - name: FidelityFX SDK 1.1.4 sources (Veyra uses its optical flow on AMD)
+        shell: pwsh
+        run: |
+          git clone --depth 1 --branch v1.1.4 https://github.com/GPUOpen-LibrariesAndSDKs/FidelityFX-SDK.git third_party_local/amd/FidelityFX-SDK
+
+      - name: Restore built FidelityFX 1.1.4 libs
+        id: ffx114cache
+        uses: actions/cache/restore@v4
+        with:
+          path: third_party_local/amd/FidelityFX-SDK/sdk/bin
+          key: ffx-sdk-1.1.4-dx12-x64-release-v1
+
+      - name: Build FidelityFX SDK 1.1.4 libs (DX12 backend, Release)
+        if: steps.ffx114cache.outputs.cache-hit != 'true'
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force third_party_local/amd/FidelityFX-SDK/sdk/build | Out-Null
+          Set-Location third_party_local/amd/FidelityFX-SDK/sdk/build
+          cmake .. -G "Visual Studio 17 2022" -A x64 -DFFX_API_BACKEND=DX12_X64 -DFFX_ALL=ON -DFFX_AUTO_COMPILE_SHADERS=1
+          if ($LASTEXITCODE) { exit 1 }
+          cmake --build . --config Release --parallel 4
+          if ($LASTEXITCODE) { exit 1 }
+          Get-ChildItem ../bin/ffx_sdk -Filter "ffx_opticalflow*.lib","ffx_backend_dx12*.lib"
+
+      - name: Save built FidelityFX 1.1.4 libs
+        if: steps.ffx114cache.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v4
+        with:
+          path: third_party_local/amd/FidelityFX-SDK/sdk/bin
+          key: ffx-sdk-1.1.4-dx12-x64-release-v1
+
       - name: NVIDIA DLSS SDK headers (public repo; the engine includes nvsdk_ngx.h even in AMD builds)
         shell: pwsh
         run: |
