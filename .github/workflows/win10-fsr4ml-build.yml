@@ -80,7 +80,7 @@ jobs:
         uses: actions/cache/restore@v4
         with:
           path: third_party_local/amd/FidelityFX-SDK/sdk/bin
-          key: ffx-sdk-1.1.4-dx12-x64-release-v1
+          key: ffx-sdk-1.1.4-dx12-x64-release-mt-v2
 
       - name: Build FidelityFX SDK 1.1.4 libs (DX12 backend, Release)
         if: steps.ffx114cache.outputs.cache-hit != 'true'
@@ -88,7 +88,7 @@ jobs:
         run: |
           New-Item -ItemType Directory -Force third_party_local/amd/FidelityFX-SDK/sdk/build | Out-Null
           Set-Location third_party_local/amd/FidelityFX-SDK/sdk/build
-          cmake .. -G "Visual Studio 17 2022" -A x64 -DFFX_API_BACKEND=DX12_X64 -DFFX_ALL=ON -DFFX_AUTO_COMPILE_SHADERS=1
+          cmake .. -G "Visual Studio 17 2022" -A x64 -DFFX_API_BACKEND=DX12_X64 -DFFX_ALL=ON -DFFX_AUTO_COMPILE_SHADERS=1 -DCMAKE_POLICY_DEFAULT_CMP0091=NEW -DCMAKE_MSVC_RUNTIME_LIBRARY=MultiThreaded
           if ($LASTEXITCODE) { exit 1 }
           cmake --build . --config Release --parallel 4
           if ($LASTEXITCODE) { exit 1 }
@@ -100,7 +100,7 @@ jobs:
         uses: actions/cache/save@v4
         with:
           path: third_party_local/amd/FidelityFX-SDK/sdk/bin
-          key: ffx-sdk-1.1.4-dx12-x64-release-v1
+          key: ffx-sdk-1.1.4-dx12-x64-release-mt-v2
 
       - name: NVIDIA DLSS SDK headers (public repo; the engine includes nvsdk_ngx.h even in AMD builds)
         shell: pwsh
