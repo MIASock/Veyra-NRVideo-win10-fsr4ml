@@ -92,7 +92,8 @@ jobs:
           if ($LASTEXITCODE) { exit 1 }
           cmake --build . --config Release --parallel 4
           if ($LASTEXITCODE) { exit 1 }
-          Get-ChildItem ../bin/ffx_sdk -Filter "ffx_opticalflow*.lib","ffx_backend_dx12*.lib"
+          Get-ChildItem ../bin/ffx_sdk/*.lib | Where-Object { $_.Name -match 'opticalflow|backend_dx12' } | Select-Object Name, Length
+          if (-not (Test-Path ../bin/ffx_sdk/ffx_opticalflow_x64.lib)) { throw 'ffx_opticalflow_x64.lib was not produced' }
 
       - name: Save built FidelityFX 1.1.4 libs
         if: steps.ffx114cache.outputs.cache-hit != 'true'
