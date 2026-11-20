@@ -70,6 +70,13 @@ jobs:
             New-Item -ItemType Junction -Path third_party_local/amd/AMF-SDK-1.5.3/include -Target (Resolve-Path third_party_local/amd/AMF-SDK-1.5.3/amf/public/include) | Out-Null
           }
 
+      - name: NVIDIA DLSS SDK headers (public repo; the engine includes nvsdk_ngx.h even in AMD builds)
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force third_party_local/nvidia | Out-Null
+          git clone --depth 1 --branch v310.7.0 https://github.com/NVIDIA/DLSS.git third_party_local/nvidia/DLSS-310.7.0
+          Test-Path third_party_local/nvidia/DLSS-310.7.0/include/nvsdk_ngx.h
+
       - name: NVENC headers (public MIT headers from FFmpeg, n13.0.19.0)
         shell: pwsh
         run: |
@@ -84,6 +91,7 @@ jobs:
           cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release `
             -DVEYRA_BUILD_QML_UI=ON -DVEYRA_ENABLE_XBOX=ON -DVEYRA_ENABLE_D3D12_DEBUG=OFF -DVEYRA_ENABLE_DEINTERLACE=OFF `
             "-DVEYRA_FFMPEG_ROOT=$vc/x64-windows" `
+            "-DVEYRA_DLSS_SDK_ROOT=$($PWD.Path -replace '\\','/')/third_party_local/nvidia/DLSS-310.7.0" `
             "-DCMAKE_PREFIX_PATH=$vc/x64-windows-static;$vc/x64-windows;$env:QT_ROOT_DIR"
 
       - name: Build veyra_qml_ui
