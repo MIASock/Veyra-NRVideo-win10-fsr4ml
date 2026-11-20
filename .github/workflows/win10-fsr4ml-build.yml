@@ -89,7 +89,7 @@ jobs:
         run: |
           $vc = ($env:VCPKG_INSTALLATION_ROOT -replace '\\','/') + '/installed'
           cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release `
-            -DVEYRA_BUILD_QML_UI=ON -DVEYRA_ENABLE_XBOX=ON -DVEYRA_ENABLE_D3D12_DEBUG=OFF -DVEYRA_ENABLE_DEINTERLACE=OFF `
+            -DVEYRA_BUILD_QML_UI=ON -DVEYRA_ENABLE_XBOX=ON -DVEYRA_ENABLE_D3D12_DEBUG=OFF -DVEYRA_ENABLE_DEINTERLACE=OFF -DVEYRA_ENABLE_EXPERIMENTAL_DLSSNR=ON `
             "-DVEYRA_FFMPEG_ROOT=$vc/x64-windows" `
             "-DVEYRA_DLSS_SDK_ROOT=$($PWD.Path -replace '\\','/')/third_party_local/nvidia/DLSS-310.7.0" `
             "-DCMAKE_PREFIX_PATH=$vc/x64-windows-static;$vc/x64-windows;$env:QT_ROOT_DIR"
