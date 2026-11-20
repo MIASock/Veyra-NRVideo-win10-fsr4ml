@@ -37,6 +37,8 @@ jobs:
         shell: pwsh
         run: |
           $vcpkg = "$env:VCPKG_INSTALLATION_ROOT\vcpkg.exe"
+          # classic mode: must not run inside the repo (its vcpkg.json forces manifest mode)
+          Set-Location $env:RUNNER_TEMP
           & $vcpkg install "ffmpeg[avcodec,avformat,swresample,swscale]:x64-windows" "opus:x64-windows" --recurse
           if ($LASTEXITCODE) { exit 1 }
           & $vcpkg install "libdatachannel:x64-windows-static" "nlohmann-json:x64-windows-static" --recurse
