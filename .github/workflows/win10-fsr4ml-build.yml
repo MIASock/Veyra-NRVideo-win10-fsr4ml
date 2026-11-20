@@ -77,6 +77,20 @@ jobs:
           git clone --depth 1 --branch v310.7.0 https://github.com/NVIDIA/DLSS.git third_party_local/nvidia/DLSS-310.7.0
           Test-Path third_party_local/nvidia/DLSS-310.7.0/include/nvsdk_ngx.h
 
+      - name: moonlight-common-c at the commit pinned in scripts/moonlight/dependency-lock.json
+        shell: pwsh
+        run: |
+          $lock = Get-Content scripts/moonlight/dependency-lock.json -Raw | ConvertFrom-Json
+          $m = $lock.moonlight_common_c
+          New-Item -ItemType Directory -Force third_party_local/moonlight | Out-Null
+          git clone $m.repository third_party_local/moonlight/moonlight-common-c
+          git -C third_party_local/moonlight/moonlight-common-c checkout $m.commit
+          git -C third_party_local/moonlight/moonlight-common-c submodule update --init --recursive
+          foreach ($s in $m.submodules.PSObject.Properties) {
+            $head = git -C third_party_local/moonlight/moonlight-common-c/$($s.Name) rev-parse HEAD
+            "$($s.Name): have $head want $($s.Value.commit)"
+          }
+
       - name: NVENC headers (public MIT headers from FFmpeg, n13.0.19.0)
         shell: pwsh
         run: |
@@ -89,7 +103,8 @@ jobs:
         run: |
           $vc = ($env:VCPKG_INSTALLATION_ROOT -replace '\\','/') + '/installed'
           cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release `
-            -DVEYRA_BUILD_QML_UI=ON -DVEYRA_ENABLE_XBOX=ON -DVEYRA_ENABLE_D3D12_DEBUG=OFF -DVEYRA_ENABLE_DEINTERLACE=OFF -DVEYRA_ENABLE_EXPERIMENTAL_DLSSNR=ON `
+            -DVEYRA_BUILD_QML_UI=ON -DVEYRA_ENABLE_XBOX=ON -DVEYRA_ENABLE_D3D12_DEBUG=OFF -DVEYRA_ENABLE_DEINTERLACE=OFF -DVEYRA_ENABLE_EXPERIMENTAL_DLSSNR=ON -DVEYRA_ENABLE_MOONLIGHT=ON `
+            "-DVEYRA_MOONLIGHT_SOURCE_DIR=$($PWD.Path -replace '\\','/')/third_party_local/moonlight/moonlight-common-c" `
             "-DVEYRA_FFMPEG_ROOT=$vc/x64-windows" `
             "-DVEYRA_DLSS_SDK_ROOT=$($PWD.Path -replace '\\','/')/third_party_local/nvidia/DLSS-310.7.0" `
             "-DCMAKE_PREFIX_PATH=$vc/x64-windows-static;$vc/x64-windows;$env:QT_ROOT_DIR"

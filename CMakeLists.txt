@@ -586,6 +586,15 @@ if(VEYRA_NVOF_SDK_ROOT AND EXISTS "${VEYRA_NVOF_SDK_ROOT}/NvOFInterface/nvOptica
     "${VEYRA_NVOF_SDK_ROOT}/NvOFInterface"
     "${VEYRA_NVOF_SDK_ROOT}/Common/NvOFBase")
   target_link_libraries(veyra_nvof_probe PRIVATE veyra_gfx veyra_base)
+else()
+  # No NVIDIA Optical Flow SDK (its D3D12 header is a login-gated download):
+  # build a stand-in NvOfSession that always reports "unavailable". AMD adapters
+  # use FidelityFX flow instead, so this is never used on a Radeon.
+  message(STATUS "NVOF SDK not found; using the NvOfSession stand-in")
+  add_library(veyra_nvof STATIC src/ngx/NvOfSessionStub.cpp)
+  target_compile_features(veyra_nvof PUBLIC cxx_std_20)
+  target_include_directories(veyra_nvof PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)
+  target_link_libraries(veyra_nvof PUBLIC veyra_base)
 endif()
 
 # Resolve FFmpeg before any consumer, including the shared enhancement graph.
