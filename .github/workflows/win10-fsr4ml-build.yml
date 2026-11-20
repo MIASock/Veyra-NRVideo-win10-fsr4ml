@@ -118,6 +118,8 @@ jobs:
           New-Item -ItemType Directory -Force dist/agility | Out-Null
           $exe = Get-ChildItem build -Recurse -Filter veyra_qml_ui.exe | Select-Object -First 1
           Copy-Item $exe.FullName dist/
+          # the official exe links Opus statically; this build imports opus.dll, which the 2.1.9 package lacks
+          Copy-Item "$env:VCPKG_INSTALLATION_ROOT/installed/x64-windows/bin/opus.dll" dist/
           Invoke-WebRequest "https://api.nuget.org/v3-flatcontainer/microsoft.direct3d.d3d12/$env:AGILITY_VERSION/microsoft.direct3d.d3d12.$env:AGILITY_VERSION.nupkg" -OutFile agility.zip
           Expand-Archive agility.zip agility_pkg
           Copy-Item agility_pkg/build/native/bin/x64/D3D12Core.dll dist/agility/
