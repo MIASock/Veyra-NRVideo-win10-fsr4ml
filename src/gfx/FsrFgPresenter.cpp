@@ -98,7 +98,7 @@ HMODULE loadResidentModule(const std::filesystem::path& path) {
     if (module) {
         modules.emplace(key, module);
         if (path.filename() == L"amd_fidelityfx_framegeneration_dx12.dll" &&
-            realBuildIsBeforeWin11() && !_wgetenv(L"VEYRA_NO_WIN11_SHIM")) {
+            realBuildIsBeforeWin11() && GetEnvironmentVariableW(L"VEYRA_NO_WIN11_SHIM", nullptr, 0) == 0) {
             const bool ok = patchGetProcAddressImport(module);
             log::info("fsr-fg", std::format("Windows 10 detected: FSR frame-generation DLL sees a Windows 11 build (experimental ML unlock) patched={}", ok));
         }
