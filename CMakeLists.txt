@@ -1549,6 +1549,11 @@ add_executable(veyra_sr_reconstruction_tests tests/integration/SrReconstructionT
   target_compile_features(veyra_engine PUBLIC cxx_std_20)
   target_compile_options(veyra_engine PRIVATE /utf-8)
   target_compile_definitions(veyra_engine PUBLIC VEYRA_PROJECT_ROOT="${CMAKE_CURRENT_SOURCE_DIR}" VEYRA_SHADER_DIR="${CMAKE_BINARY_DIR}/shaders")
+  # The NVIDIA Optical Flow SDK is not publicly downloadable. Without it the
+  # NVOF code is compiled out, so link an empty stand-in instead of a missing lib.
+  if(NOT TARGET veyra_nvof)
+    add_library(veyra_nvof INTERFACE)
+  endif()
   target_link_libraries(veyra_engine PUBLIC veyra_pipeline veyra_sources veyra_sinks veyra_ngx veyra_nvof)
   add_executable(veyra_vfg_export_probe tests/integration/VfgExportProbe.cpp)
   target_compile_features(veyra_vfg_export_probe PRIVATE cxx_std_20)
