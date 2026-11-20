@@ -64,6 +64,16 @@
 #include "veyra/ui/StartupMusic.h"
 #include "veyra/ui/ThumbnailProvider.h"
 
+// Opt in to the D3D12 Agility SDK. AMD's FSR 4 ML frame generation needs shader
+// model 6.6, which the inbox D3D12 runtime of Windows 10 does not provide. The
+// runtime reads these two exports from the executable and loads D3D12Core.dll
+// from <exe dir>\agility\. That folder MUST ship next to the exe (the CI
+// workflow packages it); without it device creation can fail.
+extern "C" {
+__declspec(dllexport) extern const UINT D3D12SDKVersion = 620;  // Agility SDK 1.620.x
+__declspec(dllexport) extern const char* D3D12SDKPath = ".\\agility\\";
+}
+
 using namespace veyra;
 
 namespace {

@@ -1,0 +1,84 @@
+name: Build exe (Windows 10 FSR 4 ML experiment)
+
+# Builds veyra_qml_ui.exe from this branch and packages it together with the
+# DirectX Agility SDK runtime. Drop the artifact's exe + agility\ folder into an
+# existing Veyra 2.1.9 AMD portable package. Experimental, unofficial.
+
+on:
+  push:
+    branches: ['win10-fsr4ml']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: windows-2022
+    timeout-minutes: 150
+    env:
+      AGILITY_VERSION: '1.620.2'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - uses: ilammy/msvc-dev-cmd@v1
+        with:
+          arch: x64
+
+      - uses: jurplel/install-qt-action@d325aaf2a8baeeda41ad0b5d39f84a6af9bcf005 # v4.3.0
+        with:
+          version: '6.8.3'
+          arch: 'win64_msvc2022_64'
+          cache: true
+
+      - name: vcpkg dependencies (FFmpeg, Opus, Xbox streaming stack)
+        shell: pwsh
+        run: |
+          $vcpkg = "$env:VCPKG_INSTALLATION_ROOT\vcpkg.exe"
+          & $vcpkg install "ffmpeg[avcodec,avformat,swresample,swscale]:x64-windows" "opus:x64-windows" --recurse
+          if ($LASTEXITCODE) { exit 1 }
+          & $vcpkg install "libdatachannel:x64-windows-static" "nlohmann-json:x64-windows-static" --recurse
+          if ($LASTEXITCODE) { exit 1 }
+
+      - name: Public AMD SDK headers (FidelityFX SDK 2.3.0, AMF 1.5.3)
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force third_party_local/amd | Out-Null
+          git clone --depth 1 --branch v2.3.0 https://github.com/GPUOpen-LibrariesAndSDKs/FidelityFX-SDK.git third_party_local/amd/FidelityFX-SDK-2.3.0
+          git clone --depth 1 --branch v1.5.3 https://github.com/GPUOpen-LibrariesAndSDKs/AMF.git third_party_local/amd/AMF-SDK-1.5.3
+          # AMF keeps its public headers under amf/public/include
+          if (Test-Path third_party_local/amd/AMF-SDK-1.5.3/amf/public/include) {
+            New-Item -ItemType Junction -Path third_party_local/amd/AMF-SDK-1.5.3/include -Target (Resolve-Path third_party_local/amd/AMF-SDK-1.5.3/amf/public/include) | Out-Null
+          }
+
+      - name: Configure
+        shell: pwsh
+        run: |
+          $vc = ($env:VCPKG_INSTALLATION_ROOT -replace '\\','/') + '/installed'
+          cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release `
+            -DVEYRA_BUILD_QML_UI=ON -DVEYRA_ENABLE_XBOX=ON -DVEYRA_ENABLE_D3D12_DEBUG=OFF `
+            "-DVEYRA_FFMPEG_ROOT=$vc/x64-windows" `
+            "-DCMAKE_PREFIX_PATH=$vc/x64-windows-static;$vc/x64-windows;$env:QT_ROOT_DIR"
+
+      - name: Build veyra_qml_ui
+        run: cmake --build build --target veyra_qml_ui --parallel 4
+
+      - name: Package exe + Agility SDK runtime
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force dist/agility | Out-Null
+          $exe = Get-ChildItem build -Recurse -Filter veyra_qml_ui.exe | Select-Object -First 1
+          Copy-Item $exe.FullName dist/
+          Invoke-WebRequest "https://api.nuget.org/v3-flatcontainer/microsoft.direct3d.d3d12/$env:AGILITY_VERSION/microsoft.direct3d.d3d12.$env:AGILITY_VERSION.nupkg" -OutFile agility.zip
+          Expand-Archive agility.zip agility_pkg
+          Copy-Item agility_pkg/build/native/bin/x64/D3D12Core.dll dist/agility/
+          $sig = Get-AuthenticodeSignature dist/agility/D3D12Core.dll
+          if ($sig.Status -ne 'Valid') { throw "D3D12Core.dll signature: $($sig.Status)" }
+          Get-ChildItem dist -Recurse | Select-Object FullName, Length
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: veyra-win10-fsr4ml
+          path: dist/
